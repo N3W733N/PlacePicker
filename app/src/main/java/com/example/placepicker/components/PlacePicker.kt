@@ -29,8 +29,10 @@ class PlacePicker : ConstraintLayout, OnMapReadyCallback {
     var isMapClicked = MutableLiveData<Boolean>()
     var latitude = MutableLiveData<Double>()
     var longitude = MutableLiveData<Double>()
-    var city = MutableLiveData<String>()
+    var address = MutableLiveData<String>()
     private var isStarting = true
+    val zoom = 10.0f
+    lateinit var mPosition: LatLng
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
@@ -69,13 +71,24 @@ class PlacePicker : ConstraintLayout, OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         geocoder = Geocoder(context, Locale.getDefault())
-        val zoom = 10.0f
-        var mPosition: LatLng
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-            if (!ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, Manifest.permission.ACCESS_FINE_LOCATION) or
-                !ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(
+                    context as Activity,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) or
+                !ActivityCompat.shouldShowRequestPermissionRationale(
+                    context as Activity,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
             ) {
                 ActivityCompat.requestPermissions(
                     context as Activity,
@@ -96,15 +109,24 @@ class PlacePicker : ConstraintLayout, OnMapReadyCallback {
                 isStarting = false
             }
         }
+        setLottieFrames()
+        startSelectLocation(googleMap)
+        endSelectLocation(googleMap)
+    }
 
+    private fun setLottieFrames() {
         lottie.setMinAndMaxFrame(0, 15)
+    }
 
+    private fun startSelectLocation(googleMap: GoogleMap) {
         googleMap.setOnCameraMoveStartedListener {
             lottie.speed = -1F
             lottie.playAnimation()
             isMapClicked.postValue(true)
         }
+    }
 
+    private fun endSelectLocation(googleMap: GoogleMap) {
         googleMap.setOnCameraIdleListener {
             lottie.speed = 1F
             lottie.playAnimation()
@@ -119,8 +141,8 @@ class PlacePicker : ConstraintLayout, OnMapReadyCallback {
             latitude.postValue(mPosition.latitude)
             longitude.postValue(mPosition.longitude)
             if (addresses.isNotEmpty()) {
-                addresses[0].subAdminArea?.let {
-                    city.postValue(it)
+                addresses.first().getAddressLine(0)?.let {
+                    address.postValue(it)
                 }
             }
         }
